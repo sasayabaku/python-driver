@@ -27,7 +27,7 @@ from cassandra.query import (PreparedStatement, BoundStatement, SimpleStatement,
 from cassandra.cluster import Cluster, NoHostAvailable
 from cassandra.policies import HostDistance, RoundRobinPolicy
 from tests.integration import use_singledc, PROTOCOL_VERSION, BasicSharedKeyspaceUnitTestCase, get_server_versions, \
-    greaterthanprotocolv3, MockLoggingHandler, get_supported_protocol_versions, local, get_cluster, setup_keyspace
+    greaterthanprotocolv3, MockLoggingHandler, get_supported_protocol_versions, get_cluster, setup_keyspace
 from tests import notwindows
 
 import time
@@ -125,7 +125,6 @@ class QueryTests(BasicSharedKeyspaceUnitTestCase):
         for event in trace.events:
             str(event)
 
-    @local
     @greaterthanprotocolv3
     def test_client_ip_in_trace(self):
         """
@@ -1057,5 +1056,3 @@ class UnicodeQueryTest(BasicSharedKeyspaceUnitTestCase):
         prepared = self.session.prepare(u"INSERT INTO {0}.{1} (k, v) VALUES (?, ?)".format(self.keyspace_name, self.function_table_name))
         bound = prepared.bind((1, unicode_text))
         self.session.execute(bound)
-
-

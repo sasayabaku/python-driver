@@ -31,7 +31,7 @@ from cassandra.connection import Connection
 from cassandra.policies import WhiteListRoundRobinPolicy, HostStateListener
 
 from tests import is_monkey_patched
-from tests.integration import use_singledc, PROTOCOL_VERSION, get_node, CASSANDRA_IP, local
+from tests.integration import use_singledc, PROTOCOL_VERSION, get_node, CASSANDRA_IP
 
 try:
     from cassandra.io.libevreactor import LibevConnection
@@ -104,7 +104,6 @@ class HeartbeatTest(unittest.TestCase):
     def tearDown(self):
         self.cluster.shutdown()
 
-    @local
     def test_heart_beat_timeout(self):
         # Setup a host listener to ensure the nodes don't go down
         test_listener = TestHostListener()

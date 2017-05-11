@@ -30,7 +30,7 @@ from cassandra.concurrent import execute_concurrent
 from cassandra.policies import (RoundRobinPolicy, ExponentialReconnectionPolicy,
                                 RetryPolicy, SimpleConvictionPolicy, HostDistance,
                                 WhiteListRoundRobinPolicy, AddressTranslator)
-from cassandra.pool import Host
+from cassandra.hosts import Host
 from cassandra.query import SimpleStatement, TraceUnavailable, tuple_factory
 
 
