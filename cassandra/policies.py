@@ -478,7 +478,7 @@ class SimpleConvictionPolicy(ConvictionPolicy):
     """
 
     def add_failure(self, connection_exc):
-        return not isinstance(connection_exc, OperationTimedOut)
+        return True #not isinstance(connection_exc, OperationTimedOut)
 
     def reset(self):
         pass

@@ -35,7 +35,7 @@ from cassandra.query import SimpleStatement, TraceUnavailable, tuple_factory
 
 
 from tests.integration import use_singledc, PROTOCOL_VERSION, get_server_versions, CASSANDRA_VERSION, DSE_VERSION, execute_until_pass, execute_with_long_wait_retry, get_node,\
-    MockLoggingHandler, get_unsupported_lower_protocol, get_unsupported_upper_protocol, protocolv5, local, CASSANDRA_IP
+    MockLoggingHandler, get_unsupported_lower_protocol, get_unsupported_upper_protocol, protocolv5, CASSANDRA_IP
 from tests.integration.util import assert_quiescent_pool_state
 import sys
 
@@ -58,7 +58,6 @@ class IgnoredHostPolicy(RoundRobinPolicy):
 
 
 class ClusterTests(unittest.TestCase):
-    @local
     def test_ignored_host_up(self):
         """
         Test to ensure that is_up is not set by default on ignored hosts
@@ -79,7 +78,6 @@ class ClusterTests(unittest.TestCase):
                 self.assertIsNone(host.is_up)
         cluster.shutdown()
 
-    @local
     def test_host_resolution(self):
         """
         Test to insure A records are resolved appropriately.
@@ -93,7 +91,6 @@ class ClusterTests(unittest.TestCase):
         cluster = Cluster(contact_points=["localhost"], protocol_version=PROTOCOL_VERSION, connect_timeout=1)
         self.assertTrue('127.0.0.1' in cluster.contact_points_resolved)
 
-    @local
     def test_host_duplication(self):
         """
         Ensure that duplicate hosts in the contact points are surfaced in the cluster metadata
@@ -113,7 +110,6 @@ class ClusterTests(unittest.TestCase):
         self.assertEqual(len(cluster.metadata.all_hosts()), 3)
         cluster.shutdown()
 
-    @local
     def test_raise_error_on_control_connection_timeout(self):
         """
         Test for initial control connection timeout
@@ -415,7 +411,6 @@ class ClusterTests(unittest.TestCase):
         self.assertEqual(original_type_meta.as_cql_query(), current_type_meta.as_cql_query())
         cluster.shutdown()
 
-    @local
     def test_refresh_schema_no_wait(self):
         contact_points = [CASSANDRA_IP]
         cluster = Cluster(protocol_version=PROTOCOL_VERSION, max_schema_agreement_wait=10,
@@ -685,7 +680,6 @@ class ClusterTests(unittest.TestCase):
 
         cluster.shutdown()
 
-    @local
     def test_profile_load_balancing(self):
         """
         Tests that profile load balancing policies are honored.
@@ -836,7 +830,6 @@ class ClusterTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 session.execute(query, execution_profile='rr3')
 
-    @local
     def test_profile_pool_management(self):
         """
         Tests that changes to execution profiles correctly impact our cluster's pooling
@@ -863,7 +856,6 @@ class ClusterTests(unittest.TestCase):
             pools = session.get_pool_state()
             self.assertEqual(set(h.address for h in pools), set(('127.0.0.1', '127.0.0.2', '127.0.0.3')))
 
-    @local
     def test_add_profile_timeout(self):
         """
         Tests that EP Timeouts are honored.
@@ -907,7 +899,7 @@ class LocalHostAdressTranslator(AddressTranslator):
         new_addr = self.addr_map.get(addr)
         return new_addr
 
-@local
+
 class TestAddressTranslation(unittest.TestCase):
 
     def test_address_translator_basic(self):
@@ -951,7 +943,7 @@ class TestAddressTranslation(unittest.TestCase):
             self.assertEqual(adder_map.get(str(host)), host.broadcast_address)
         c.shutdown()
 
-@local
+
 class ContextManagementTest(unittest.TestCase):
     load_balancing_policy = WhiteListRoundRobinPolicy([CASSANDRA_IP])
     cluster_kwargs = {'execution_profiles': {EXEC_PROFILE_DEFAULT: ExecutionProfile(load_balancing_policy=
@@ -1071,7 +1063,7 @@ class HostStateTest(unittest.TestCase):
                 time.sleep(.01)
             self.assertTrue(was_marked_down)
 
-@local
+
 class DontPrepareOnIgnoredHostsTest(unittest.TestCase):
 
     ignored_addresses = ['127.0.0.3']
@@ -1109,7 +1101,7 @@ class DontPrepareOnIgnoredHostsTest(unittest.TestCase):
             self.assertEqual(call(unignored_address), c)
         cluster.shutdown()
 
-@local
+
 class DuplicateRpcTest(unittest.TestCase):
 
     load_balancing_policy = WhiteListRoundRobinPolicy(['127.0.0.1'])
