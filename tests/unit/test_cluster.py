@@ -25,7 +25,7 @@ from cassandra.cluster import _Scheduler, Session, Cluster, _NOT_SET, default_lb
 from cassandra.policies import HostDistance, RetryPolicy, RoundRobinPolicy, \
     DowngradingConsistencyRetryPolicy, SimpleConvictionPolicy
 from cassandra.query import SimpleStatement, named_tuple_factory, tuple_factory
-from cassandra.pool import Host
+from cassandra.hosts import Host
 from tests.unit.utils import mock_session_pools
 
 try:
