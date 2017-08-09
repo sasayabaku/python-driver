@@ -30,6 +30,7 @@ def assert_quiescent_pool_state(test_case, cluster):
             # all ids are unique
             req_ids = connection.request_ids
             test_case.assertEqual(len(req_ids), len(set(req_ids)))
+            print("connection: {}".format(connection))
             test_case.assertEqual(connection.highest_request_id, len(req_ids) - 1)
             test_case.assertEqual(connection.highest_request_id, max(req_ids))
             if PROTOCOL_VERSION < 3:

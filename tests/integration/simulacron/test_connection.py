@@ -25,7 +25,7 @@ from mock import Mock
 
 from cassandra import OperationTimedOut
 from cassandra.cluster import (EXEC_PROFILE_DEFAULT, Cluster, ExecutionProfile,
-                               _Scheduler)
+                               _Scheduler, NoHostAvailable)
 from cassandra.policies import HostStateListener, RoundRobinPolicy
 from tests.integration import (CASSANDRA_VERSION, PROTOCOL_VERSION,
                                requiressimulacron)
@@ -34,7 +34,7 @@ from tests.integration.simulacron.utils import (NO_THEN, PrimeOptions,
                                                 prime_query, prime_request,
                                                 start_and_prime_cluster_defaults,
                                                 start_and_prime_singledc,
-                                                stop_simulacron)
+                                                stop_simulacron, clear_queries)
 
 
 class TrackDownListener(HostStateListener):
@@ -49,6 +49,19 @@ class ThreadTracker(ThreadPoolExecutor):
     def submit(self, fn, *args, **kwargs):
         self.called_functions.append(fn.__name__)
         return super(ThreadTracker, self).submit(fn, *args, **kwargs)
+
+
+class OrderedRoundRobinPolicy(RoundRobinPolicy):
+
+    def make_query_plan(self, working_keyspace=None, query=None):
+        self._position += 1
+
+        hosts = []
+        for _ in range(10):
+            hosts.extend(sorted(self._live_hosts, key=lambda x : x.address))
+
+        return hosts
+
 
 @requiressimulacron
 class ConnectionTest(unittest.TestCase):
@@ -155,3 +168,90 @@ class ConnectionTest(unittest.TestCase):
         # PYTHON-630 -- only the errback should be called
         errback.assert_called_once()
         callback.assert_not_called()
+
+    def test_close_when_query(self):
+        start_and_prime_singledc()
+        self.addCleanup(stop_simulacron)
+
+        cluster = Cluster(protocol_version=PROTOCOL_VERSION, compression=False)
+        session = cluster.connect()
+        self.addCleanup(cluster.shutdown)
+
+        query_to_prime = "SELECT * from testkesypace.testtable"
+
+        for close_type in ("disconnect", "shutdown_read", "shutdown_write"):
+            then = {
+                "result": "close_connection",
+                "delay_in_ms": 0,
+                "close_type": close_type,
+                "scope": "connection"
+            }
+
+            prime_query(query_to_prime, then=then)
+            self.assertRaises(NoHostAvailable, session.execute, query_to_prime)
+
+    def test_retry_after_defunct(self):
+        """
+        We test cluster._retry is called if an the connection is defunct
+        in the middle of a query
+
+        Finally we verify the driver recovers correctly in the event
+        of a network partition
+        """
+        number_of_dcs = 4
+        nodes_per_dc = 2
+
+        query_to_prime = "INSERT INTO test3rf.test (k, v) VALUES (0, 1);"
+
+        idle_heartbeat_timeout = 1
+        idle_heartbeat_interval = 3
+
+        simulacron_cluster = start_and_prime_cluster_defaults(number_of_dcs, nodes_per_dc, CASSANDRA_VERSION)
+        self.addCleanup(stop_simulacron)
+
+        roundrobin_lbp = OrderedRoundRobinPolicy()
+        cluster = Cluster(compression=False,
+                          idle_heartbeat_interval=idle_heartbeat_interval,
+                          idle_heartbeat_timeout=idle_heartbeat_timeout,
+                          execution_profiles={
+                              EXEC_PROFILE_DEFAULT: ExecutionProfile(load_balancing_policy=roundrobin_lbp)})
+
+        session = cluster.connect(wait_for_all_pools=True)
+        self.addCleanup(cluster.shutdown)
+
+        dc_ids = sorted(simulacron_cluster.data_center_ids)
+
+        a = dc_ids.pop()
+
+        prime_query(query_to_prime,
+                    cluster_name="{}/{}".format(simulacron_cluster.cluster_name,  a))
+
+        # This simulates we only have access to one DC
+        for dc_id in dc_ids:
+            datacenter_path = "{}/{}".format(simulacron_cluster.cluster_name, dc_id)
+            prime_query(query_to_prime, then=NO_THEN, cluster_name=datacenter_path)
+            prime_request(PrimeOptions(then=NO_THEN, cluster_name=datacenter_path))
+
+        # Only the last datacenter will respond, therefore the first host won't
+        # We want to make sure the returned hosts are 127.0.0.1,  127.0.0.2, ... 127.0.0.8
+        roundrobin_lbp._position = 0
+
+        # After 3 + 1 seconds the connection should be marked and down and another host retried
+        response_future = session.execute_async(query_to_prime, timeout=2 * idle_heartbeat_interval
+                                                                        + idle_heartbeat_timeout)
+        response_future.result()
+        print(response_future.attempted_hosts)
+        self.assertGreater(len(response_future.attempted_hosts), 1)
+
+        # No error should be raised here since the hosts have been marked
+        # as down and there's still 1 DC available
+        for _ in range(10):
+            session.execute(query_to_prime)
+
+        # Might take some time to close the previous connections and reconnect
+        time.sleep(10)
+        assert_quiescent_pool_state(self, cluster)
+        clear_queries()
+
+        time.sleep(10)
+        assert_quiescent_pool_state(self, cluster)

@@ -291,8 +291,10 @@ def start_and_prime_cluster_defaults(number_of_dc=1, nodes_per_dc=3, version=Non
     """
     start_simulacron()
     data_centers = ",".join([str(nodes_per_dc)] * number_of_dc)
-    prime_cluster(data_centers=data_centers, version=version, cluster_name=cluster_name)
+    simulacron_cluster = prime_cluster(data_centers=data_centers, version=version, cluster_name=cluster_name)
     prime_driver_defaults()
+
+    return simulacron_cluster
 
 
 default_column_types = {
@@ -316,6 +318,10 @@ def prime_query(query, rows=default_rows, column_types=default_column_types, whe
     Shortcut function for priming a query
     :return:
     """
+    if then:
+        rows = None
+        column_types = None
+
     query = PrimeQuery(query, rows=rows, column_types=column_types, when=when, then=then, cluster_name=cluster_name)
     response = prime_request(query)
     return response
