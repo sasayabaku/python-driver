@@ -982,6 +982,7 @@ class MaterializedViewQueryTest(BasicSharedKeyspaceUnitTestCase):
     def setUp(self):
         if CASS_SERVER_VERSION < (3, 0):
             raise unittest.SkipTest("Materialized views require Cassandra 3.0+")
+        
 
     def test_mv_filtering(self):
         """
