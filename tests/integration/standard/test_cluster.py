@@ -1029,7 +1029,6 @@ class ClusterTests(unittest.TestCase):
 
         @test_category metadata
         """
-        queried_hosts = set()
         with Cluster(protocol_version=PROTOCOL_VERSION,
                      load_balancing_policy=TokenAwarePolicy(RoundRobinPolicy())) as cluster:
             session = cluster.connect(wait_for_all_pools=True)
@@ -1049,17 +1048,21 @@ class ClusterTests(unittest.TestCase):
 
         only_replica = queried_hosts.pop()
         available_hosts = [host for host in ["127.0.0.1", "127.0.0.2", "127.0.0.3"] if host != only_replica]
+        print(available_hosts)
         with Cluster(contact_points=available_hosts,
                      protocol_version=PROTOCOL_VERSION,
                      load_balancing_policy=HostFilterPolicy(RoundRobinPolicy(),
-                     predicate=lambda host: host.address != only_replica)) as cluster:
+                        predicate=lambda host: host.address != only_replica)) as cluster:
 
             session = cluster.connect(wait_for_all_pools=True)
             prepared = session.prepare("""SELECT * from test1rf.table_with_big_key
                                           WHERE k1 = ? AND k2 = ? AND k3 = ? AND k4 = ?""")
             for _ in range(10):
                 result = session.execute(prepared, (last_i, last_i, last_i, last_i), trace=True)
-                self._assert_replica_queried(result.get_query_trace(), only_replicas=False)
+                try:
+                    self._assert_replica_queried(result.get_query_trace(), only_replicas=False)
+                except AssertionError as e:
+                    raise Exception(str(e) + ", replica: {}".format(only_replica))
 
             session.execute('''DROP TABLE test1rf.table_with_big_key''')
 
