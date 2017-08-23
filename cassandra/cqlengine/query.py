@@ -870,7 +870,7 @@ class AbstractQuerySet(object):
 
         return clone
 
-    def limit(self, v):
+    def limit(self, v=None):
         """
         Limits the number of results returned by Cassandra. Use *0* or *None* to disable.
 
