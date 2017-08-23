@@ -1,5 +1,5 @@
 
-Writing & commit Test
+Writing & commit Test2
 Releasing
 =========
 * Run the tests and ensure they all pass
