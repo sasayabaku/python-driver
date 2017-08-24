@@ -1,4 +1,21 @@
-# encoding: utf-8
+# Copyright 2013-2017 DataStax, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
+
 from cassandra.cluster import Cluster
 from cassandra.cqlengine.models import Model
 from cassandra.cqlengine import columns
@@ -27,6 +44,7 @@ class test_table(Model):
     user = columns.Integer(primary_key=True)
     prop = columns.Text()
 
+
 def create_database():
     print("----- CREATE KEYSPACE & TABLE -----")
 
@@ -49,6 +67,16 @@ def insert_data(num=1):
         test_table.create(user=str(INSERT_USER), prop=INSERT_PROP[randint(3)])
         INSERT_USER += 1
 
+# Test
+class LimitTest(unittest.TestCase):
+
+    def test_check_number_columns(self):
+        # No limit()
+        Limit = len(test_table.all())
+        # None
+        All = len(test_table.all().limit(None))
+
+        self.assertEqual(Limit, All)
 
 if __name__ == '__main__':
 
@@ -57,18 +85,4 @@ if __name__ == '__main__':
 
     session.set_keyspace(KEYSPACE)
 
-    ## get limit
-    All = test_table.all()
-
-    print("len(All.limit(10000))")
-    print(len(All.limit(10000)))
-    print('')
-
-    print("len(All.limit(None))")
-    print(len(All.limit(None)))
-    print('')
-
-    # Before -> Error missing 1 required
-    # After -> Result > 10000
-    print("len(All.limit())")
-    print(len(All.limit()))
+    unittest.main(exit=False)
