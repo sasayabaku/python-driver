@@ -1,5 +1,3 @@
-
-Writing & commit Test2
 Releasing
 =========
 * Run the tests and ensure they all pass
@@ -113,7 +111,7 @@ You can also specify a cassandra directory (to test unreleased versions)::
 
 Specifying the usage of an already running Cassandra cluster
 ----------------------------------------------------
-The test will start the appropriate Cassandra clusters when necessary  but if you don't want this to happen because a Cassandra cluster is already running the flag ``USE_CASS_EXTERNAL`` can be used, for example: 
+The test will start the appropriate Cassandra clusters when necessary  but if you don't want this to happen because a Cassandra cluster is already running the flag ``USE_CASS_EXTERNAL`` can be used, for example:
 
 	USE_CASS_EXTERNAL=1 python setup.py nosetests -w tests/integration/standard
 
@@ -142,7 +140,7 @@ and change ``tests/unit/`` to ``tests/``.
 Running the Benchmarks
 ======================
 There needs to be a version of cassandra running locally so before running the benchmarks, if ccm is installed:
-	
+
 	ccm create benchmark_cluster -v 3.0.1 -n 1 -s
 
 To run the benchmarks, pick one of the files under the ``benchmarks/`` dir and run it::
